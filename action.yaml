@@ -1,0 +1,50 @@
+name: Poetry Install
+description: Install Poetry, run poetry install and cache it.
+
+inputs:
+  python-version:
+    description: "Python version."
+    required: true
+    default: "3.11"
+
+  poetry-version:
+    description: "Poetry version."
+    required: true
+    default: "1.3.2"
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Cache
+      id: cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache
+          ~/.local
+          .venv
+        key: python-${{inputs.python-version}}-poetry-${{inputs.poetry-version}}-${{hashFiles('poetry.lock')}}
+        restore-keys: python-${{inputs.python-version}}-poetry-${{inputs.poetry-version}}-
+
+    - name: Setup python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{inputs.python-version}}
+
+    - name: Setup poetry
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: pip install --user poetry==${{inputs.poetry-version}}
+
+    - name: Setup venv
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        python -m venv .venv
+
+    - name: Install package
+      shell: bash
+      run: |
+        source .venv/bin/activate
+        poetry install
